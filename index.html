@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bowling Spare Trainer</title>
+  <style>
+    :root { --bg:#f5f5f5; --card:#fff; --text:#111; --muted:#666; --line:#e6e6e6; }
+    body{
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      background: var(--bg);
+      margin:0; padding:20px; color:var(--text);
+      text-align:center;
+    }
+    .container{
+      max-width: 420px; margin: 0 auto;
+      background: var(--card);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    }
+    h1{ font-size: 18px; margin: 6px 0 14px; }
+    .toolbar{
+      display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap;
+      margin-bottom: 12px;
+    }
+    .seg{
+      display:flex; border:1px solid var(--line); border-radius: 12px; overflow:hidden;
+      background:#fafafa;
+    }
+    .seg button{
+      appearance:none; border:0; background:transparent; padding:10px 12px;
+      font-weight:600; font-size: 14px; cursor:pointer;
+    }
+    .seg button.active{ background:#111; color:#fff; }
+    .btn{
+      appearance:none; border:1px solid var(--line); background:#fff;
+      padding:10px 12px; border-radius: 12px; cursor:pointer;
+      font-weight:600; font-size: 14px;
+    }
+    .btn.primary{ background:#111; color:#fff; border-color:#111; }
+    .btn:disabled{ opacity:0.5; cursor:not-allowed; }
+
+    .problem{
+      margin: 10px 0 4px;
+      font-size: 14px; color: var(--muted);
+    }
+    .problem strong{ color: var(--text); }
+
+    .pins{ margin: 14px 0 10px; }
+    .row{ display:flex; justify-content:center; gap:10px; margin: 10px 0; }
+    .pin{
+      width: 46px; height: 46px;
+      border-radius: 50%;
+      display:flex; align-items:center; justify-content:center;
+      border: 1px solid var(--line);
+      font-weight:700; user-select:none;
+      background:#ddd; color:#888;
+    }
+    .pin.up{ background:#111; color:#fff; border-color:#111; }
+    .pin.clickable{ cursor:pointer; }
+    .pin.clickable:active{ transform: scale(0.98); }
+
+    .answerArea{ margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+    .pad{
+      display:grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .numBtn{
+      padding: 12px 0;
+      border-radius: 12px;
+      border:1px solid var(--line);
+      background:#fff;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .numBtn.sel{ background:#111; color:#fff; border-color:#111; }
+
+    .result{
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background:#fafafa;
+      border:1px solid var(--line);
+      text-align:left;
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 24px;
+    }
+    .ok{ font-weight:800; }
+    .bad{ font-weight:800; }
+    .footer{
+      margin-top: 14px;
+      display:flex; gap:10px; justify-content:center;
+    }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+	.pin span {
+	  font-size: 14px;
+	  font-weight: 700;
+	  pointer-events: none;
+	}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Bowling Spare Trainer（最小版）</h1>
+
+    <div class="toolbar">
+      <div class="seg" role="tablist" aria-label="mode">
+        <button id="modeA" class="active" type="button">図 → 数字</button>
+        <button id="modeB" type="button">数字 → 図</button>
+      </div>
+    </div>
+	
+    <div class="problem" id="problemText">
+		問題：<strong>（図を見て残りピン番号を選択）</strong>
+	</div>
+
+    <div class="pins" aria-label="pin diagram">
+      <!-- ▽配置：上から 7 8 9 10 / 4 5 6 / 2 3 / 1 -->
+      <div class="row">
+        <div class="pin" data-pin="7"></div>
+        <div class="pin" data-pin="8"></div>
+        <div class="pin" data-pin="9"></div>
+        <div class="pin" data-pin="10"></div>
+      </div>
+      <div class="row">
+        <div class="pin" data-pin="4"></div>
+        <div class="pin" data-pin="5"></div>
+        <div class="pin" data-pin="6"></div>
+      </div>
+      <div class="row">
+        <div class="pin" data-pin="2"></div>
+        <div class="pin" data-pin="3"></div>
+      </div>
+      <div class="row">
+        <div class="pin" data-pin="1"></div>
+      </div>
+    </div>
+
+    <div class="answerArea">
+      <div id="padTitle" class="problem"><strong>回答入力</strong></div>
+
+      <div id="numberPad" class="pad" aria-label="number pad">
+        <button class="numBtn" data-num="1" type="button">1</button>
+        <button class="numBtn" data-num="2" type="button">2</button>
+        <button class="numBtn" data-num="3" type="button">3</button>
+        <button class="numBtn" data-num="4" type="button">4</button>
+        <button class="numBtn" data-num="5" type="button">5</button>
+        <button class="numBtn" data-num="6" type="button">6</button>
+        <button class="numBtn" data-num="7" type="button">7</button>
+        <button class="numBtn" data-num="8" type="button">8</button>
+        <button class="numBtn" data-num="9" type="button">9</button>
+        <button class="numBtn" data-num="10" type="button">10</button>
+      </div>
+
+      <div class="footer">
+        <button id="checkBtn" class="btn primary" type="button">答え合わせ</button>
+        <button id="nextBtn" class="btn" type="button">次へ</button>
+        <button id="resetBtn" class="btn" type="button">リセット</button>
+      </div>
+
+      <div class="result" id="resultBox"></div>
+	  <div id="tipBox" class="result" style="display:none"></div>
+    </div>
+  </div>
+
+  <script>
+    // ====== ユーティリティ ======
+    const pinEls = Array.from(document.querySelectorAll(".pin"));
+    const numBtns = Array.from(document.querySelectorAll(".numBtn"));
+    const modeA = document.getElementById("modeA");
+    const modeB = document.getElementById("modeB");
+    const checkBtn = document.getElementById("checkBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const problemText = document.getElementById("problemText");
+    const resultBox = document.getElementById("resultBox");
+    const hintText = document.getElementById("hintText");
+
+    const PINS = [1,2,3,4,5,6,7,8,9,10];
+
+    function setActiveMode(isFigureToNumber){
+      currentMode = isFigureToNumber ? "FIG2NUM" : "NUM2FIG";
+      modeA.classList.toggle("active", isFigureToNumber);
+      modeB.classList.toggle("active", !isFigureToNumber);
+
+      // 図をタップできるか
+      const clickable = !isFigureToNumber;
+      pinEls.forEach(el=>{
+        el.classList.toggle("clickable", clickable);
+      });
+
+      // 数字パッドは図→数字の入力。数字→図では「参照用」に残す（好みで消してもOK）
+      // ここでは：数字→図ではパッドを無効化
+      numBtns.forEach(b=>{
+        b.disabled = !isFigureToNumber;
+        b.classList.remove("sel");
+      });
+      selectedNums.clear();
+
+      // 表示文言
+      if(isFigureToNumber){
+        problemText.innerHTML = '問題：<strong>（図を見て残りピン番号を選択）</strong>';
+      }else{
+        problemText.innerHTML = '問題：<strong class="mono" id="targetText"></strong> を図で作成';
+      }
+      render();
+      updateTargetText();
+      clearResult();
+    }
+
+    function clearResult(){
+      resultBox.textContent = "";
+    }
+
+    // ====== 状態 ======
+    let currentMode = "FIG2NUM";
+    // 正解（ターゲット）：boolean[10] (index0=pin1)
+    let target = Array(10).fill(false);
+    // ユーザー入力
+    let selectedNums = new Set();      // 図→数字
+    let userFig = Array(10).fill(false); // 数字→図
+
+    // ====== 変換 ======
+    function boolsToNumbers(arr){
+      const out = [];
+      for(let i=0;i<10;i++){
+        if(arr[i]) out.push(i+1);
+      }
+      return out;
+    }
+    function numbersToBools(nums){
+      const arr = Array(10).fill(false);
+      nums.forEach(n=>{
+        if(n>=1 && n<=10) arr[n-1]=true;
+      });
+      return arr;
+    }
+    function formatNums(nums){
+      const sorted = Array.from(nums).slice().sort((a,b)=>a-b);
+      return sorted.join("-");
+    }
+
+    // ====== 重み付きランダム（B案） ======
+    // 1) 残り本数の重み（学習効率寄り）
+    const countWeights = [
+      {count:1, w:25},
+      {count:2, w:30},
+      {count:3, w:20},
+      {count:4, w:15},
+      {count:5, w:8},
+      {count:6, w:2},
+    ];
+
+    // 2) プリセット（まずは少数でOK、後で増やす）
+    // ※ピン番号セット
+    const presets = {
+      1: [
+        {pins:[7], w:40},
+        {pins:[10], w:40},
+        {pins:[1], w:5},{pins:[2], w:5},{pins:[3], w:5},{pins:[4], w:5},
+      ],
+      2: [
+        // 隣接・縦ペアを厚め
+        {pins:[2,3], w:20},
+        {pins:[4,5], w:20},
+        {pins:[5,6], w:20},
+        {pins:[8,9], w:10},
+        {pins:[2,5], w:10},
+        {pins:[3,6], w:10},
+        // 代表スプリット（レア寄り）
+        {pins:[7,10], w:5},
+        {pins:[4,10], w:5},
+      ],
+      3: [
+        {pins:[2,4,5], w:25},
+        {pins:[3,5,6], w:25},
+        {pins:[4,5,6], w:15},
+        {pins:[1,2,4], w:10},
+        {pins:[1,3,6], w:10},
+        {pins:[7,4,2], w:7},
+        {pins:[10,6,3], w:8},
+      ],
+      4: [
+        {pins:[4,5,6,7], w:15},
+        {pins:[3,4,5,6], w:25},
+        {pins:[2,4,5,8], w:10},
+        {pins:[3,5,6,9], w:10},
+        {pins:[7,8,9,10], w:10},
+        {pins:[1,2,3,5], w:15},
+        {pins:[1,2,3,6], w:15},
+      ],
+      5: [
+        {pins:[1,2,3,5,6], w:20},
+        {pins:[1,2,3,4,5], w:20},
+        {pins:[2,3,4,5,6], w:20},
+        {pins:[3,4,5,6,10], w:20},
+        {pins:[1,4,7,10,6], w:20},
+      ],
+      6: [
+        {pins:[1,2,3,4,5,6], w:40},
+        {pins:[2,3,4,5,6,9], w:30},
+        {pins:[1,2,4,5,7,8], w:30},
+      ]
+    };
+
+	const tips = {
+	  "7": {
+		ball: "spare",
+		stance: "22",
+		target: "22",
+		note: ""
+	  },
+	  "10": {
+		ball: "spare",
+		stance: "27",
+		target: "15",
+		note: ""
+	  },
+	  "2-4-5": {
+		ball: "main",
+		stance: "ストライクスタンスから3枚右",
+		target: "ストライクコース",
+		note: ""
+	  },
+	  "2-4": {
+		ball: "main",
+		stance: "ストライクスタンスから3枚右",
+		target: "ストライクコース",
+		note: ""
+	  },
+	  "4-7-8": {
+		ball: "main",
+		stance: "ストライクスタンスから2枚右",
+		target: "ストライクコース",
+		note: ""
+	  },
+	  "4-7": {
+		ball: "spare",
+		stance: "25",
+		target: "22",
+		note: ""
+	  },
+	  "6-10": {
+		ball: "spare",
+		stance: "25",
+		target: "15",
+		note: ""
+	  }
+	};
+
+
+    function weightedPick(items){
+      const total = items.reduce((s,it)=>s+it.w,0);
+      let r = Math.random()*total;
+      for(const it of items){
+        r -= it.w;
+        if(r <= 0) return it;
+      }
+      return items[items.length-1];
+    }
+
+    function pickCount(){
+      return weightedPick(countWeights).count;
+    }
+
+    function randomComboByCount(count){
+      // 単純に count 本をランダム選択（プリセット外の刺激用）
+      const pool = PINS.slice();
+      const chosen = [];
+      while(chosen.length < count && pool.length){
+        const idx = Math.floor(Math.random()*pool.length);
+        chosen.push(pool.splice(idx,1)[0]);
+      }
+      return chosen.sort((a,b)=>a-b);
+    }
+
+    function generateTarget(){
+      const count = pickCount();
+
+      // 90%：プリセット（ある場合） / 10%：完全ランダム
+      const usePreset = presets[count] && Math.random() < 0.9;
+
+      let nums;
+	  pinEls.forEach(el => el.innerHTML = "");
+      if(usePreset){
+        nums = weightedPick(presets[count]).pins.slice().sort((a,b)=>a-b);
+      }else{
+        nums = randomComboByCount(count);
+      }
+      // 念のため0本は避ける
+      if(nums.length === 0) nums = [10];
+
+      target = numbersToBools(nums);
+
+      // 入力をリセット
+      selectedNums.clear();
+      userFig = Array(10).fill(false);
+      numBtns.forEach(b=>b.classList.remove("sel"));
+
+      render();
+      updateTargetText();
+      clearResult();
+	  document.getElementById("tipBox").style.display = "none";
+    }
+
+    // ====== 描画 ======
+    function render(){
+      // targetの表示
+      const targetNums = new Set(boolsToNumbers(target));
+
+      // 図→数字：targetを表示（ユーザーが触らない）
+      // 数字→図：ユーザーが作った図を表示（targetは文字で提示）
+      const showArr = (currentMode === "FIG2NUM") ? target : userFig;
+      const showNums = new Set(boolsToNumbers(showArr));
+
+      pinEls.forEach(el=>{
+        const n = Number(el.dataset.pin);
+        el.classList.toggle("up", showNums.has(n));
+      });
+
+      // 図→数字の選択状態
+      if(currentMode === "FIG2NUM"){
+        numBtns.forEach(btn=>{
+          const n = Number(btn.dataset.num);
+          btn.classList.toggle("sel", selectedNums.has(n));
+        });
+      }
+    }
+
+    function updateTargetText(){
+      const t = document.getElementById("targetText");
+      if(!t) return;
+      const nums = boolsToNumbers(target);
+      t.textContent = nums.length ? nums.join("-") : "（なし）";
+    }
+
+    // ====== 入力イベント ======
+    // 数字ボタン（図→数字）
+    numBtns.forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        if(currentMode !== "FIG2NUM") return;
+        const n = Number(btn.dataset.num);
+        if(selectedNums.has(n)) selectedNums.delete(n);
+        else selectedNums.add(n);
+        render();
+      });
+    });
+
+    // ピンタップ（数字→図）
+    pinEls.forEach(el=>{
+      el.addEventListener("click", ()=>{
+        if(currentMode !== "NUM2FIG") return;
+        const n = Number(el.dataset.pin);
+        userFig[n-1] = !userFig[n-1];
+        render();
+      });
+    });
+
+    // ====== 答え合わせ ======
+    function arraysEqual(a,b){
+      for(let i=0;i<10;i++) if(!!a[i] !== !!b[i]) return false;
+      return true;
+    }
+
+    checkBtn.addEventListener("click", ()=>{
+      let userArr;
+      if(currentMode === "FIG2NUM"){
+        userArr = numbersToBools(Array.from(selectedNums));
+      }else{
+        userArr = userFig.slice();
+      }
+
+      const ok = arraysEqual(userArr, target);
+      const userNums = boolsToNumbers(userArr);
+      const targetNums = boolsToNumbers(target);
+
+      if(ok){
+        resultBox.innerHTML = `<span class="ok">⭕ 正解</span><br>あなた：<span class="mono">${formatNums(userNums)}</span>`;
+      }else{
+        resultBox.innerHTML =
+          `<span class="bad">❌ 不正解</span><br>` +
+          `あなた：<span class="mono">${formatNums(userNums) || "（なし）"}</span><br>` +
+          `正解　：<span class="mono">${formatNums(targetNums)}</span>`;
+      }
+
+	  // 正解のピンにだけ数字を表示する
+	  pinEls.forEach(el => {
+		const n = Number(el.dataset.pin);
+		if (target[n - 1]) {
+		  el.innerHTML = `<span>${n}</span>`;
+		}
+	  });
+	  // --- 攻略メモ表示 ---
+	  const key = formatNums(targetNums); // 例: "2-4"
+	  const tip = tips[key];
+	  const tipBox = document.getElementById("tipBox");
+
+	  if (tip) {
+	    tipBox.style.display = "block";
+	    tipBox.innerHTML =
+		  `<strong>攻略メモ</strong><br>` +
+		  `ボール　：${tip.ball === "spare" ? "スペアボール" : "メインボール"}<br>` +
+		  `立ち位置：${tip.stance}<br>` +
+		  `狙い　　：${tip.target}` +
+		  (tip.note ? `<br>メモ　　：${tip.note}` : "");
+	  } else {
+	    tipBox.style.display = "none";
+	  }
+	});
+
+
+    nextBtn.addEventListener("click", ()=>{
+      generateTarget();
+    });
+
+    resetBtn.addEventListener("click", ()=>{
+      pinEls.forEach(el => el.innerHTML = "");
+	  selectedNums.clear();
+      userFig = Array(10).fill(false);
+      numBtns.forEach(b=>b.classList.remove("sel"));
+      render();
+      clearResult();
+    });
+
+    modeA.addEventListener("click", ()=> setActiveMode(true));
+    modeB.addEventListener("click", ()=> setActiveMode(false));
+
+    // 初期化
+    setActiveMode(true);
+    generateTarget();
+  </script>
+</body>
+</html>
