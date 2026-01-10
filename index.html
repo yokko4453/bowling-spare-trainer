@@ -101,6 +101,41 @@
 	  font-weight: 700;
 	  pointer-events: none;
 	}
+    /* iPhone SE 等の小さめ画面：ピン図を縮めて縦を確保 */
+    @media (max-height: 700px) {
+
+      body { padding: 10px; }
+      .container { padding: 10px; }
+
+      h1 { font-size: 16px; margin: 6px 0 8px; }
+
+      .toolbar { gap: 8px; margin-bottom: 8px; }
+      .seg button { padding: 8px 10px; font-size: 13px; }
+      .btn { padding: 8px 10px; font-size: 13px; }
+
+      .problem { margin: 6px 0 2px; }
+
+      /* ここが主役：ピン図を小さくする */
+      .pins { margin: 8px 0 8px; }
+      .row { margin: 4px 0; gap: 6px; }
+
+      .pin {
+        width: 30px;
+        height: 30px;
+        font-size: 11px;
+      }
+
+      /* 正解表示の数字も少し小さく */
+      .pin span { font-size: 11px; }
+
+      /* 数字パッドも少し詰める */
+      .answerArea { margin-top: 8px; padding-top: 8px; }
+      .pad { gap: 6px; margin-top: 8px; }
+      .numBtn { padding: 9px 0; border-radius: 10px; }
+
+      .footer { margin-top: 10px; gap: 8px; }
+      .result { margin-top: 8px; padding: 8px 10px; font-size: 13px; }
+    }
   </style>
 </head>
 <body>
